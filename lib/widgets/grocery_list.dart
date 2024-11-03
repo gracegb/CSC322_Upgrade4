@@ -1,11 +1,10 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shopping_list/data/categories.dart';
-
 import 'package:shopping_list/models/grocery_item.dart';
 import 'package:shopping_list/widgets/new_item.dart';
+import 'package:shopping_list/widgets/category_section.dart'; // Import the new widget
 
 class GroceryList extends StatefulWidget {
   const GroceryList({super.key});
@@ -32,47 +31,44 @@ class _GroceryListState extends State<GroceryList> {
     try {
       final response = await http.get(url);
 
-          if (response.statusCode >= 400) {
-      setState(() {
-        _error = 'Failed to fetch data. Please try later.';
-      });
-    }
+      if (response.statusCode >= 400) {
+        setState(() {
+          _error = 'Failed to fetch data. Please try later.';
+        });
+      }
 
-    if (response.body == 'null') {
+      if (response.body == 'null') {
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final Map<String, dynamic> listData = json.decode(response.body);
+      final List<GroceryItem> loadedItems = [];
+      for (final item in listData.entries) {
+        final category = categories.entries
+            .firstWhere(
+                (catItem) => catItem.value.title == item.value['category'])
+            .value;
+        loadedItems.add(
+          GroceryItem(
+            id: item.key,
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: category,
+          ),
+        );
+      }
       setState(() {
+        _groceryItems = loadedItems;
         _isLoading = false;
       });
-      return;
-    }
-
-    final Map<String, dynamic> listData = json.decode(response.body);
-    final List<GroceryItem> loadedItems = [];
-    for (final item in listData.entries) {
-      final category = categories.entries
-          .firstWhere(
-              (catItem) => catItem.value.title == item.value['category'])
-          .value;
-      loadedItems.add(
-        GroceryItem(
-          id: item.key,
-          name: item.value['name'],
-          quantity: item.value['quantity'],
-          category: category,
-        ),
-      );
-    }
-    setState(() {
-      _groceryItems = loadedItems;
-      _isLoading = false;
-    });
-
     } catch (error) {
       setState(() {
         _error = 'Something went wrong. Please try again later.';
       });
     }
-
-
   }
 
   void _addItem() async {
@@ -103,7 +99,6 @@ class _GroceryListState extends State<GroceryList> {
     final response = await http.delete(url);
 
     if (response.statusCode >= 400) {
-      // Optional: show error msg
       setState(() {
         _groceryItems.insert(index, item);
       });
@@ -116,33 +111,29 @@ class _GroceryListState extends State<GroceryList> {
 
     if (_isLoading) {
       content = const Center(child: CircularProgressIndicator());
-    }
-
-    if (_groceryItems.isNotEmpty) {
-      content = ListView.builder(
-        itemCount: _groceryItems.length,
-        itemBuilder: (ctx, index) => Dismissible(
-          onDismissed: (direction) {
-            _removeItem(_groceryItems[index]);
-          },
-          key: ValueKey(_groceryItems[index].id),
-          child: ListTile(
-            title: Text(_groceryItems[index].name),
-            leading: Container(
-              width: 24,
-              height: 24,
-              color: _groceryItems[index].category.color,
-            ),
-            trailing: Text(
-              _groceryItems[index].quantity.toString(),
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_error != null) {
+    } else if (_error != null) {
       content = Center(child: Text(_error!));
+    } else if (_groceryItems.isNotEmpty) {
+      // Group items by category
+      final Map<String, List<GroceryItem>> categorizedItems = {};
+      for (final item in _groceryItems) {
+        categorizedItems.putIfAbsent(item.category.title, () => []).add(item);
+      }
+
+      content = ListView(
+        children: categorizedItems.entries.map((entry) {
+          final categoryColor = categories.entries
+              .firstWhere((cat) => cat.value.title == entry.key)
+              .value
+              .color; // Fetch the color for the category
+
+          return CategorySection(
+            categoryTitle: entry.key,
+            items: entry.value,
+            categoryColor: categoryColor, // Pass the color to CategorySection
+          );
+        }).toList(),
+      );
     }
 
     return Scaffold(
