@@ -5,17 +5,20 @@ class CategorySection extends StatefulWidget {
   final String categoryTitle;
   final List<GroceryItem> items;
   final Color categoryColor;
+  final void Function() onCheckedChange; // New callback parameter
 
   const CategorySection({
     required this.categoryTitle,
     required this.items,
     required this.categoryColor,
+    required this.onCheckedChange, // Pass callback in constructor
     Key? key,
   }) : super(key: key);
 
   @override
   _CategorySectionState createState() => _CategorySectionState();
 }
+
 
 class _CategorySectionState extends State<CategorySection> {
   @override
@@ -40,6 +43,7 @@ class _CategorySectionState extends State<CategorySection> {
                 setState(() {
                   item.isChecked = value ?? false;
                 });
+                    widget.onCheckedChange(); // Call a function passed from the parent to update budget
               },
             ),
             title: Text(

@@ -5,6 +5,7 @@ class GroceryItem {
   final String name;
   final int quantity;
   final Category category;
+  final double price;
   bool isChecked; // New field to track the checked state
 
   GroceryItem({
@@ -12,6 +13,7 @@ class GroceryItem {
     required this.name,
     required this.quantity,
     required this.category,
+    this.price = 0.0, // default val of zero
     this.isChecked = false, // Default to unchecked when an item is added
   });
 }

@@ -22,6 +22,7 @@ class _NewItemState extends State<NewItem> {
   var _enteredQuantity = 1;
   var _selectedCategory = categories[Categories.vegetables]!;
   var _isSending = false;
+  double _enteredPrice = 0.0; // Change _enteredPrice to double
 
   void _saveItem() async {
     if (_formKey.currentState!.validate()) {
@@ -41,6 +42,8 @@ class _NewItemState extends State<NewItem> {
             'name': _enteredName,
             'quantity': _enteredQuantity,
             'category': _selectedCategory.title,
+            'price': _enteredPrice,
+            'isChecked' : false,
           },
         ),
       );
@@ -57,6 +60,7 @@ class _NewItemState extends State<NewItem> {
           name: _enteredName,
           quantity: _enteredQuantity,
           category: _selectedCategory,
+          price: _enteredPrice, // Pass the price to GroceryItem
         ),
       );
     }
@@ -89,12 +93,9 @@ class _NewItemState extends State<NewItem> {
                   return null;
                 },
                 onSaved: (value) {
-                  // if (value == null) {
-                  //   return;
-                  // }
                   _enteredName = value!;
                 },
-              ), // instead of TextField()
+              ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -120,6 +121,33 @@ class _NewItemState extends State<NewItem> {
                     ),
                   ),
                   const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        label: Text('Price'),
+                      ),
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a price.';
+                        }
+                        final parsedValue = double.tryParse(value);
+                        if (parsedValue == null || parsedValue <= 0) {
+                          return 'Enter a valid positive price.';
+                        }
+                        return null;
+                      },
+                      onSaved: (value) {
+                        _enteredPrice = double.parse(value!);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
                   Expanded(
                     child: DropdownButtonFormField(
                       value: _selectedCategory,

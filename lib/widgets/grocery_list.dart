@@ -16,6 +16,7 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
   var _isLoading = true;
+  double _budget = 100.0; // initial budget
   String? _error;
 
   @override
@@ -57,12 +58,16 @@ class _GroceryListState extends State<GroceryList> {
             name: item.value['name'],
             quantity: item.value['quantity'],
             category: category,
+            price: item.value['price'] ?? 0.0, // Load price if stored
+            isChecked: item.value['isChecked'] ??
+                false, // Load isChecked or default to false
           ),
         );
       }
       setState(() {
         _groceryItems = loadedItems;
         _isLoading = false;
+        _updateBudget(); // Update the budget based on loaded items
       });
     } catch (error) {
       setState(() {
@@ -105,6 +110,30 @@ class _GroceryListState extends State<GroceryList> {
     }
   }
 
+  void _updateBudget() {
+    setState(() {
+      _budget = 100.0;
+      for (final item in _groceryItems) {
+        if (item.isChecked) {
+          _budget -= item.price;
+        }
+      }
+    });
+  }
+
+  void _clearCheckedItems() {
+    final checkedItems = _groceryItems.where((item) => item.isChecked).toList();
+
+    for (final item in checkedItems) {
+      _removeItem(item);
+    }
+
+    setState(() {
+      _groceryItems.removeWhere((item) => item.isChecked);
+      _updateBudget();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget content = const Center(child: Text('No items added yet.'));
@@ -125,12 +154,14 @@ class _GroceryListState extends State<GroceryList> {
           final categoryColor = categories.entries
               .firstWhere((cat) => cat.value.title == entry.key)
               .value
-              .color; // Fetch the color for the category
+              .color;
 
           return CategorySection(
             categoryTitle: entry.key,
             items: entry.value,
-            categoryColor: categoryColor, // Pass the color to CategorySection
+            categoryColor: categoryColor,
+            onCheckedChange:
+                _updateBudget, // Make sure this is here if implemented
           );
         }).toList(),
       );
@@ -146,7 +177,27 @@ class _GroceryListState extends State<GroceryList> {
           ),
         ],
       ),
-      body: content,
+      body: Column(
+        children: [
+          Expanded(
+            child: content,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ElevatedButton(
+              onPressed: _clearCheckedItems,
+              child: const Text('Clear Checked Items'),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Budget: \$${_budget.toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
